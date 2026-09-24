@@ -1,0 +1,53 @@
+{
+  "name": "opencode-seatbelt",
+  "version": "0.1.0",
+  "description": "macOS Seatbelt (kernel sandbox) for OpenCode. Stops coding agents from reading secrets, enforced by the OS, not by command matching.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ssmirr",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssmirr/opencode-seatbelt.git"
+  },
+  "homepage": "https://github.com/ssmirr/opencode-seatbelt#readme",
+  "bugs": {
+    "url": "https://github.com/ssmirr/opencode-seatbelt/issues"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "seatbelt",
+    "sandbox",
+    "sandbox-exec",
+    "macos",
+    "security",
+    "ocignore",
+    "agent-sandbox",
+    "secret-protection"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.16"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "e2e": "bun run test/e2e.ts",
+    "prepublishOnly": "bun run typecheck && bun test"
+  }
+}

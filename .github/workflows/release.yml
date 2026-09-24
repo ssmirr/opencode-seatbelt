@@ -1,0 +1,82 @@
+name: Release
+
+# Publish whatever version is already in package.json, using npm Trusted
+# Publishing (OIDC) — there is no npm token secret. This workflow never bumps or
+# edits the version; set `version` yourself, commit + push it, then run this
+# from the default branch. It fails before publishing if the tag or GitHub
+# release already exists, then tags that commit `v<version>`, publishes to npm,
+# and opens a GitHub release.
+#
+# Requires the package to already exist with a trusted publisher configured for
+# this workflow (npm requires a manual first publish), so set that up on
+# npmjs.com before the first workflow release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the tag and create the GitHub release
+  id-token: write # OIDC token for npm trusted publishing
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the default branch
+        if: github.ref_name != github.event.repository.default_branch
+        run: |
+          echo "::error::Run this from '${{ github.event.repository.default_branch }}', not '${{ github.ref_name }}'."
+          exit 1
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false # never cache in release builds
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Read version from package.json
+        id: version
+        run: echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the tag or release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            echo "::error::Tag v$VERSION already exists — bump package.json first."
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::GitHub release v$VERSION already exists — bump package.json first."
+            exit 1
+          fi
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+
+      - name: Tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Publish to npm
+        run: npm publish --access public # authenticates via OIDC
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes --title "v${{ steps.version.outputs.version }}"
