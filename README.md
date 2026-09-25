@@ -1,4 +1,4 @@
-# opencode-seatbelt
+# opencode-seatbelt <a href="https://www.npmjs.com/package/opencode-seatbelt"><img alt="npm" src="https://img.shields.io/npm/v/opencode-seatbelt?logo=npm&color=cb3837" align="right"></a>
 
 **A real kernel sandbox for OpenCode on macOS, driven by `.ocignore`.**
 
