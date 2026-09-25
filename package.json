@@ -1,6 +1,6 @@
 {
   "name": "opencode-seatbelt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "macOS Seatbelt (kernel sandbox) for OpenCode. Stops coding agents from reading secrets, enforced by the OS, not by command matching.",
   "type": "module",
   "license": "MIT",
