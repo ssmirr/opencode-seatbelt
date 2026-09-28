@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  BASELINE_ALLOW,
+  BASELINE_DENY,
   ancestorDirs,
   buildProfile,
   defaultGlobalDir,
@@ -67,6 +69,42 @@ describe("globToRegex — global (match anywhere)", () => {
 
   test("directory patterns match at any depth", () => {
     expect(globToRegex(".ssh/", null)).toBe("(^|/)\\.ssh(/|$)")
+  })
+})
+
+describe("baseline", () => {
+  const matches = (patterns: readonly string[], path: string) =>
+    patterns.some((pattern) => new RegExp(globToRegex(pattern, null)).test(path))
+  const blocked = (path: string) => matches(BASELINE_DENY, path) && !matches(BASELINE_ALLOW, path)
+
+  test("protects key material and credentials", () => {
+    for (const path of [
+      "/home/u/.ssh/id_rsa",
+      "/home/u/.ssh/id_work", // custom-named key under .ssh
+      "/home/u/.aws/credentials",
+      "/home/u/.gnupg/private-keys-v1.d/abc.key",
+      "/home/u/.gnupg/secring.gpg",
+      "/repo/.env",
+      "/repo/id_ed25519",
+      "/repo/certs/server.pem",
+    ]) {
+      expect(blocked(path)).toBe(true)
+    }
+  })
+
+  test("does not hide non-secret tooling config or public certificates", () => {
+    for (const path of [
+      "/home/u/.ssh/known_hosts",
+      "/home/u/.ssh/config",
+      "/home/u/.ssh/id_rsa.pub",
+      "/home/u/.aws/config",
+      "/etc/ssl/cert.pem",
+      "/private/etc/ssl/cert.pem",
+      "/opt/homebrew/etc/openssl@3/cert.pem",
+      "/venv/lib/python3.12/site-packages/certifi/cacert.pem",
+    ]) {
+      expect(blocked(path)).toBe(false)
+    }
   })
 })
 

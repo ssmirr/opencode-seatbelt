@@ -63,9 +63,24 @@ config/credentials.json
 !.env.example
 ```
 
-The built-in baseline already covers common secret shapes (`.env`, `id_rsa`, `*.pem`, `*.key`,
-`.ssh/`, `.aws/`, `.npmrc`, `.git-credentials`, `credentials.json`, …), so a `.ocignore` is for
-project-specific additions.
+The built-in baseline already covers common secret shapes (`.env`, `id_rsa`, `.ssh/id_*`, `*.pem`,
+`*.key`, `.git-credentials`, `credentials.json`, `.aws/credentials`, `.gnupg/private-keys-v1.d/`, …),
+so a `.ocignore` is for project-specific additions.
+
+The baseline matches **specific files, not whole directories**. Non-secret tooling config therefore
+stays readable — `~/.ssh/known_hosts`, `~/.ssh/config`, and `~/.aws/config` are not denied, so SSH
+and git no longer fail host-key verification and the AWS CLI can still load its config. Public
+material is re-allowed too (`.ssh/*.pub`, `*.crt`, `cacert.pem`), along with the system certificate
+authorities (`/etc/ssl/`, `/private/etc/ssl/`, and the Homebrew/`/usr/local` openssl and
+`ca-certificates` directories) so `*.pem` no longer hides the CA bundle and breaks TLS verification
+for git, curl, and Python. Only key material stays denied (`.ssh/id_*`, `*.pem`, `*.key`, …). The
+trade-off: a private key with a nonstandard name (not `id_*`, not `*.pem`/`*.key`) is no longer
+caught automatically — add it to `.ocignore`.
+
+`.npmrc` is deliberately **not** in the baseline: it is usually a mixed-purpose config file
+(`legacy-peer-deps`, `save-exact`, scoped registries, …) rather than a credential store, and denying
+it globally also swallows your user-level `~/.npmrc`, making npm silently fall back to defaults. If
+yours carries an auth token, add `.npmrc` to `.ocignore` yourself.
 
 ## How it works
 

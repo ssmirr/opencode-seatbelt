@@ -26,6 +26,11 @@ export const DEFAULT_POLICY_FILE = ".ocignore"
  * These protect you even when a repository forgets to list something in
  * .ocignore, which is the common real-world failure mode. The baseline is
  * global: it matches at any depth, anywhere on the filesystem.
+ *
+ * Patterns name specific secret *files*, not whole directories. A directory
+ * glob like `.ssh/` is over-broad: it also hides non-secret tooling config
+ * (`known_hosts`, `config`), which breaks host-key verification and other
+ * normal commands. Denying the key material directly keeps that working.
  */
 export const BASELINE_DENY: readonly string[] = [
   "*.env",
@@ -34,23 +39,41 @@ export const BASELINE_DENY: readonly string[] = [
   "id_ed25519",
   "id_ecdsa",
   "id_dsa",
+  ".ssh/id_*",
   "*.pem",
   "*.key",
   "*.p12",
   "*.pfx",
   ".netrc",
-  ".npmrc",
   ".pypirc",
   ".git-credentials",
   "credentials",
   "credentials.json",
-  ".ssh/",
-  ".aws/",
-  ".gnupg/",
+  ".aws/credentials",
+  ".gnupg/private-keys-v1.d/",
+  ".gnupg/secring.gpg",
 ]
 
 /** Patterns re-allowed even though the baseline denies them. */
-export const BASELINE_ALLOW: readonly string[] = [".env.example", ".env.sample", ".env.template"]
+export const BASELINE_ALLOW: readonly string[] = [
+  // Templates carry no secrets.
+  ".env.example",
+  ".env.sample",
+  ".env.template",
+  // Public keys and certificates are not secrets.
+  ".ssh/*.pub",
+  "*.crt",
+  "cacert.pem",
+  // System certificate authorities. Without these, `*.pem` hides the CA bundle
+  // and TLS verification fails for git, curl, and anything using the system
+  // store. These directories hold public material only.
+  "/etc/ssl/",
+  "/private/etc/ssl/",
+  "/opt/homebrew/etc/openssl@*/",
+  "/opt/homebrew/etc/ca-certificates/",
+  "/usr/local/etc/openssl@*/",
+  "/usr/local/etc/ca-certificates/",
+]
 
 /** Directory names skipped while scanning downward for nested policy files. */
 export const DEFAULT_SKIP_DIRECTORIES: readonly string[] = [
